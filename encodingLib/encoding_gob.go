@@ -21,12 +21,13 @@ func MarshalGob(data interface{}) ([]byte, error) {
 }
 
 // UnmarshalGob 反序列化gob
-func UnmarshalGob(data []byte, to interface{}) {
+func UnmarshalGob(data []byte, to interface{}) error {
 	buff := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buff)
 	err := decoder.Decode(to)
 	if err != nil {
 		// log it
-		return
 	}
+
+	return err
 }
