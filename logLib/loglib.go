@@ -7,6 +7,9 @@ import (
 	"os"
 )
 
+// The loglib package is not dependent on any other package within the goToolKit,
+// and goToolKit should initialize logLib before it is used.
+
 var (
 	loggerInst *zap.Logger
 )

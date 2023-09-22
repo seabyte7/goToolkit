@@ -3,6 +3,8 @@ package securityLib
 import (
 	"crypto/md5"
 	"fmt"
+	"go.uber.org/zap"
+	"goToolkit/logLib"
 	"io"
 	"os"
 	"strings"
@@ -30,15 +32,17 @@ func MD5SumFile(filePath string, upper bool) string {
 	hashObj := md5.New()
 	fp, err := os.Open(filePath)
 	if err != nil {
-		// todo log it
-		fmt.Printf("MD5SumFile file:%v error:%v\n", filePath, err.Error())
+		logLib.Zap().Error("MD5SumFile open file failed.",
+			zap.String("filePath", filePath),
+			zap.String("error", err.Error()))
 		return ""
 	}
 	defer fp.Close()
 
 	if _, err := io.Copy(hashObj, fp); err != nil {
-		// todo log it
-		fmt.Printf("MD5SumFile file:%v io.Copy error:%v\n", filePath, err.Error())
+		logLib.Zap().Error("MD5SumFile io.Copy file to hashObj occur error.",
+			zap.String("filePath", filePath),
+			zap.String("error", err.Error()))
 		return ""
 	}
 
