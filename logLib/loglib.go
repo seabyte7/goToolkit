@@ -53,10 +53,49 @@ func StopLog() {
 	}
 }
 
+// Initialize a default log
+// Most of the time it is used when the test code reports an error.
+func newDefaultZapLog() *zap.Logger {
+	config := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zap.DebugLevel),
+		Development: true,
+		Encoding:    "console", // 使用 console 编码器，它输出 plain text 格式
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "time",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      []string{"goToolKit_debug.log"}, // 输出到指定文件
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		panic(err)
+	}
+
+	return logger
+}
+
 func Zap() *zap.Logger {
+	if loggerInst == nil {
+		loggerInst = newDefaultZapLog()
+	}
+
 	return loggerInst
 }
 
 func Sugar() *zap.SugaredLogger {
+	if loggerInst == nil {
+		loggerInst = newDefaultZapLog()
+	}
+
 	return loggerInst.Sugar()
 }
