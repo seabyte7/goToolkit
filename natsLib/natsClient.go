@@ -39,12 +39,13 @@ func (this *NatsClient) tryGetMsgHandler(api NatsMsgApi) (NatsMsgHandler, bool) 
 	return handler, true
 }
 
-func (this *NatsClient) Run(async bool) {
-
-}
-
 func (this *NatsClient) Close() {
+	if this.natsConn == nil {
+		return
+	}
+
 	this.natsConn.Close()
+	this.natsConn = nil
 }
 
 func (this *NatsClient) HandleMsg(msg *nats.Msg) error {
@@ -91,13 +92,15 @@ func (this *NatsClient) Publish(subject string, api NatsMsgApi, data interface{}
 	return nil
 }
 
-func (this *NatsClient) Subscribe(subject string) {
+func (this *NatsClient) Subscribe(subject string) error {
 	_, err := this.natsConn.ChanSubscribe(subject, this.MsgChannel)
 	if err != nil {
 		logLib.Zap().Error("Subscribe message failed.",
 			zapcore.Field{Key: "method", String: "natsLib.Subscribe"},
 			zapcore.Field{Key: "subject", String: subject},
 			zapcore.Field{Key: "error", String: err.Error()})
-		return
+		return err
 	}
+
+	return nil
 }
