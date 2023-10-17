@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 )
 
-// MarshalGob 序列化gob
-// 序列化的对象需要先调用gob.RegisterName/gob.Register注册
+// MarshalGob Serializes the gob
+// serialized objects need to invoke the gob. RegisterName/gob. Register to Register
 func MarshalGob(data interface{}) ([]byte, error) {
 	buff := &bytes.Buffer{}
 	encoder := gob.NewEncoder(buff)
@@ -20,7 +20,7 @@ func MarshalGob(data interface{}) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// UnmarshalGob 反序列化gob
+// UnmarshalGob deserializes the serialized gob object
 func UnmarshalGob(data []byte, to interface{}) error {
 	buff := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buff)

@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// 获得当前的执行环境的位置
-func GetCurrPath() string {
+// GetWorkPath GetCurrPath Gets the working path of the current execution file
+func GetWorkPath() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		// log it
@@ -18,7 +18,7 @@ func GetCurrPath() string {
 	return filepath.Dir(exePath)
 }
 
-// 文件是否存在
+// IsFileExist Check whether the file exists
 func IsFileExist(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil || stat.IsDir() {
@@ -28,7 +28,7 @@ func IsFileExist(path string) bool {
 	return true
 }
 
-// 目录是否存在
+// IsDirectoryExist Check whether the directory exists
 func IsDirectoryExist(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -38,8 +38,8 @@ func IsDirectoryExist(path string) bool {
 	return stat.IsDir()
 }
 
-// 获得指定目录下的指定后缀的所有文件
-// suffix: 后缀名字，不带.
+// GetAbsoluteFileList Gets all files with the specified suffix in the specified directory
+// suffix: suffix name, without.
 func GetAbsoluteFileList(rootPath, suffix string) ([]string, error) {
 	if !IsDirectoryExist(rootPath) {
 		return nil, os.ErrNotExist
@@ -75,7 +75,7 @@ func GetAbsoluteFileList(rootPath, suffix string) ([]string, error) {
 	return filePathList, nil
 }
 
-// 获得指定文件名字列表
+// GetFileList Gets a list of file names for the specified path
 func GetFileList(rootPath, prefix, suffix string) ([]string, error) {
 	if !IsDirectoryExist(rootPath) {
 		return nil, os.ErrNotExist
