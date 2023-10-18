@@ -74,7 +74,7 @@ func (this *NatsClient) HandleMsg(msg *nats.Msg) error {
 }
 
 func (this *NatsClient) Publish(subject string, api NatsMsgApi, data interface{}) error {
-	publishData := NewNatsMsgData(api, data)
+	publishData := newNatsMsgData(api, data)
 	msg, err := encodingLib.MarshalGob(publishData)
 	if err != nil {
 		return err

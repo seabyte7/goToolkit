@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-var (
-	natsConn *nats.Conn
-)
-
 func connect(name, user, passwd string, serverList []string) (conn *nats.Conn, err error) {
 	options := nats.GetDefaultOptions()
 	options.PingInterval = 20 * time.Second
@@ -78,12 +74,4 @@ func connect(name, user, passwd string, serverList []string) (conn *nats.Conn, e
 	}
 
 	return
-}
-
-func disconnect(conn *nats.Conn) {
-	if conn == nil {
-		return
-	}
-
-	conn.Close()
 }

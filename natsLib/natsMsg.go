@@ -1,17 +1,15 @@
 package natsLib
 
-type NatsMsgApi int32
+import "github.com/nats-io/nats.go"
 
-var (
-	NatsMsgApiUnknown NatsMsgApi = 0
-)
+type NatsMsgHandler func(*nats.Msg) error
 
 type NatsMsgData struct {
 	Api  NatsMsgApi
 	Data interface{}
 }
 
-func NewNatsMsgData(api NatsMsgApi, data interface{}) NatsMsgData {
+func newNatsMsgData(api NatsMsgApi, data interface{}) NatsMsgData {
 	return NatsMsgData{
 		Api:  api,
 		Data: data,
