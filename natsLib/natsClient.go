@@ -68,7 +68,7 @@ func (this *NatsClient) HandleMsg(msg *nats.Msg) error {
 		return err
 	}
 
-	err = handler(msg)
+	err = handler(&msgData)
 
 	return err
 }

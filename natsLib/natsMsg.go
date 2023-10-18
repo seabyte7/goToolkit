@@ -1,8 +1,6 @@
 package natsLib
 
-import "github.com/nats-io/nats.go"
-
-type NatsMsgHandler func(*nats.Msg) error
+type NatsMsgHandler func(*NatsMsgData) error
 
 type NatsMsgData struct {
 	Api  NatsMsgApi
