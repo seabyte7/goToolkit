@@ -2,13 +2,14 @@ package protocol
 
 import "errors"
 
-type ResultStatus error
+type Result error
 
 var (
-	Success ResultStatus = nil
+	Success Result = nil
 )
 
 // 错误码
 var (
-	RecvDataNotEnough ResultStatus = errors.New("RecvDataNotEnough")
+	RecvDataNotEnough Result = errors.New("RecvDataNotEnough")
+	NetListenFailed   Result = errors.New("NetListenFailed")
 )

@@ -1,8 +1,10 @@
 package netType
 
 type Message struct {
-	Len  uint32 // msg length,include header size
-	Data []byte // only data,not include header
+	SrcSessionID  uint64
+	DestSessionID uint64
+	Len           uint32 // msg length,include header size
+	Data          []byte // only data,not include header
 }
 
 func NewMessage(msgLen uint32, data []byte) *Message {
