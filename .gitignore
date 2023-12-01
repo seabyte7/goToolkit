@@ -28,3 +28,4 @@ main
 
 # log files
 *.log
+*.log_json
