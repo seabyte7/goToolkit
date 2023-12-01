@@ -8,7 +8,7 @@ import (
 
 type TcpClient struct {
 	Name          string
-	OutMsgChannel chan *netType.Message
+	OutMsgChannel chan *netType.MessageBody
 
 	session *TcpSession
 }
@@ -19,7 +19,7 @@ func DialTcpServer(name, addr string) (*TcpClient, Result) {
 		return nil, err
 	}
 
-	msgChannel := make(chan *netType.Message, 512)
+	msgChannel := make(chan *netType.MessageBody, 512)
 	clientPtr := &TcpClient{
 		Name:          name,
 		OutMsgChannel: msgChannel,

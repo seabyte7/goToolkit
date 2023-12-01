@@ -3,9 +3,9 @@ package tcpLib
 import "sync/atomic"
 
 var (
-	autoID uint64
+	autoID uint32
 )
 
-func acquireID() uint64 {
-	return atomic.AddUint64(&autoID, 1)
+func acquireID() uint32 {
+	return atomic.AddUint32(&autoID, 1)
 }

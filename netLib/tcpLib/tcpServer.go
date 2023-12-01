@@ -8,40 +8,37 @@ import (
 	. "goToolkit/protocol"
 	"net"
 	"sync"
+	"time"
 )
 
 type TcpServer struct {
-	Addr string
+	OutMsgChannel chan *netType.MessageBody // Out message channel needs to be referenced by the outside world
 
-	listener     net.Listener
-	sessionMap   map[uint64]*TcpSession
-	sessionMutex sync.RWMutex
-
-	OutMsgChannel  chan *netType.Message
+	addr           string
+	listener       net.Listener
+	sessionMap     map[uint32]*TcpSession
+	sessionMutex   sync.RWMutex
 	disconnectChan chan *TcpSession
-
-	CloseOnce sync.Once
-	exitChan  chan bool
+	exitChan       chan bool
 }
 
 func NewTcpServer(addr string) *TcpServer {
 	return &TcpServer{
-		Addr:           addr,
+		OutMsgChannel:  make(chan *netType.MessageBody, 1024),
+		addr:           addr,
 		listener:       nil,
-		sessionMap:     make(map[uint64]*TcpSession, 512),
-		OutMsgChannel:  make(chan *netType.Message, 1024),
+		sessionMap:     make(map[uint32]*TcpSession, 512),
 		disconnectChan: make(chan *TcpSession, 512),
-		//CloseOnce:
-		exitChan: make(chan bool, 1),
+		exitChan:       make(chan bool, 1),
 	}
 }
 
 func (this *TcpServer) Start() Result {
-	listener, err := net.Listen("tcp", this.Addr)
+	listener, err := net.Listen("tcp", this.addr)
 	if err != nil {
 		logLib.Zap().Error(
 			"TcpServer start failed",
-			zap.String("addr", this.Addr),
+			zap.String("addr", this.addr),
 			zap.Error(err),
 		)
 		return err
@@ -52,20 +49,25 @@ func (this *TcpServer) Start() Result {
 	go this.acceptThread()
 	go this.sessionThread()
 
-	logLib.Zap().Info("TcpServer start success.", zap.String("addr", this.Addr))
+	logLib.Zap().Info("TcpServer start success.", zap.String("addr", this.addr))
 
 	return Success
 }
 
 func (this *TcpServer) Stop() {
-	this.listener.Close()
-	this.listener = nil
+	close(this.exitChan)
+
+	if this.listener != nil {
+		this.listener.Close()
+		this.listener = nil
+	}
 
 	for _, item := range this.sessionMap {
 		item.Stop()
 	}
+	this.sessionMap = make(map[uint32]*TcpSession, 8)
 
-	logLib.Zap().Info("TcpServer stop success.", zap.String("addr", this.Addr))
+	logLib.Zap().Info("TcpServer stop success.", zap.String("addr", this.addr))
 }
 
 func (this *TcpServer) addSession(session *TcpSession) {
@@ -82,7 +84,7 @@ func (this *TcpServer) removeSession(session *TcpSession) {
 	delete(this.sessionMap, session.ID)
 }
 
-func (this *TcpServer) tryGetSession(sessionID uint64) (*TcpSession, bool) {
+func (this *TcpServer) tryGetSession(sessionID uint32) (*TcpSession, bool) {
 	this.sessionMutex.RLock()
 	defer this.sessionMutex.RUnlock()
 
@@ -136,4 +138,36 @@ func (this *TcpServer) sessionThread() {
 	}
 
 	logLib.Zap().Info("TcpServer sessionThread exit.")
+}
+
+func (this *TcpServer) heartBeatThread() {
+	logLib.Zap().Info("TcpServer heartBeatThread start.")
+	willExit := false
+	timeTickChan := time.Tick(1 * time.Second)
+	for {
+		select {
+		case <-timeTickChan:
+			for _, item := range this.sessionMap {
+				item.HeartBeat()
+			}
+
+			// clear not active session
+			sessionList := make([]*TcpSession, 0, 32)
+			for _, item := range this.sessionMap {
+				if item.IsActive() {
+					continue
+				}
+				sessionList = append(sessionList, item)
+			}
+		case <-this.exitChan:
+			willExit = true
+			break
+		}
+
+		if willExit {
+			break
+		}
+	}
+
+	logLib.Zap().Info("TcpServer heartBeatThread exit.")
 }
