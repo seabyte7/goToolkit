@@ -25,3 +25,6 @@ go.work
 
 #main directory
 main
+
+# log files
+*.log

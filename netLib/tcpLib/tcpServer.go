@@ -12,7 +12,7 @@ import (
 )
 
 type TcpServer struct {
-	OutMsgChannel chan *netType.MessageBody // Out message channel needs to be referenced by the outside world
+	OutMsgChannel chan *netType.ClientServerMsg // Out message channel needs to be referenced by the outside world
 
 	addr           string
 	listener       net.Listener
@@ -24,7 +24,7 @@ type TcpServer struct {
 
 func NewTcpServer(addr string) *TcpServer {
 	return &TcpServer{
-		OutMsgChannel:  make(chan *netType.MessageBody, 1024),
+		OutMsgChannel:  make(chan *netType.ClientServerMsg, 1024),
 		addr:           addr,
 		listener:       nil,
 		sessionMap:     make(map[uint32]*TcpSession, 512),
@@ -48,6 +48,7 @@ func (this *TcpServer) Start() Result {
 
 	go this.acceptThread()
 	go this.sessionThread()
+	go this.heartBeatThread()
 
 	logLib.Zap().Info("TcpServer start success.", zap.String("addr", this.addr))
 
@@ -82,6 +83,15 @@ func (this *TcpServer) removeSession(session *TcpSession) {
 	defer this.sessionMutex.Unlock()
 
 	delete(this.sessionMap, session.ID)
+}
+
+func (this *TcpServer) removeSessionByList(sessionList []*TcpSession) {
+	this.sessionMutex.Lock()
+	defer this.sessionMutex.Unlock()
+
+	for _, item := range sessionList {
+		delete(this.sessionMap, item.ID)
+	}
 }
 
 func (this *TcpServer) tryGetSession(sessionID uint32) (*TcpSession, bool) {
@@ -147,18 +157,23 @@ func (this *TcpServer) heartBeatThread() {
 	for {
 		select {
 		case <-timeTickChan:
+			closeSessionList := make([]*TcpSession, 0, 32)
+			this.sessionMutex.Lock()
 			for _, item := range this.sessionMap {
+				if !item.IsActive() {
+					closeSessionList = append(closeSessionList, item)
+					continue
+				}
+
 				item.HeartBeat()
 			}
 
 			// clear not active session
-			sessionList := make([]*TcpSession, 0, 32)
-			for _, item := range this.sessionMap {
-				if item.IsActive() {
-					continue
-				}
-				sessionList = append(sessionList, item)
+			for _, item := range closeSessionList {
+				item.Stop()
+				delete(this.sessionMap, item.ID)
 			}
+			this.sessionMutex.Unlock()
 		case <-this.exitChan:
 			willExit = true
 			break

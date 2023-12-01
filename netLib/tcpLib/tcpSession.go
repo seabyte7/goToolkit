@@ -7,15 +7,20 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
+)
+
+const (
+	MaxHeartBeatIntervalMs = 5 * 1000 // 60s
 )
 
 type TcpSession struct {
 	ID uint32
 
-	SendMsgChannel     chan *netType.MessageBody
-	OutMsgChanRef      chan *netType.MessageBody // Referenced external out message channel
-	disconnectChanRef  chan *TcpSession          // Referenced external disconnected channel
-	readWriteCloseChan chan struct{}             // The internal read/write channel is closed
+	SendMsgChannel     chan *netType.ClientServerMsg
+	OutMsgChanRef      chan *netType.ClientServerMsg // Referenced external out message channel
+	disconnectChanRef  chan *TcpSession              // Referenced external disconnected channel
+	readWriteCloseChan chan struct{}                 // The internal read/write channel is closed
 
 	conn        net.Conn
 	recvDataBuf []byte // recv data buffer
@@ -29,10 +34,10 @@ type TcpSession struct {
 	closeOnce sync.Once
 }
 
-func newSession(conn net.Conn, outMsgChan chan *netType.MessageBody, disconnectChan chan *TcpSession) *TcpSession {
+func newSession(conn net.Conn, outMsgChan chan *netType.ClientServerMsg, disconnectChan chan *TcpSession) *TcpSession {
 	return &TcpSession{
 		ID:                 acquireID(),
-		SendMsgChannel:     make(chan *netType.MessageBody, 512),
+		SendMsgChannel:     make(chan *netType.ClientServerMsg, 512),
 		OutMsgChanRef:      outMsgChan,
 		disconnectChanRef:  disconnectChan,
 		readWriteCloseChan: make(chan struct{}, 2),
@@ -40,7 +45,7 @@ func newSession(conn net.Conn, outMsgChan chan *netType.MessageBody, disconnectC
 		recvDataBuf:        make([]byte, 0),
 		recvBytes:          0,
 		sendBytes:          0,
-		lastActiveTimeMs:   0,
+		lastActiveTimeMs:   time.Now().UnixMilli(),
 		exitChan:           make(chan struct{}, 1),
 	}
 }
@@ -108,18 +113,28 @@ func (this *TcpSession) recvThread() {
 
 			this.recvDataBuf = append(this.recvDataBuf, recvBuf[:count]...)
 			this.recvBytes += uint64(count)
+			this.lastActiveTimeMs = time.Now().UnixMilli()
 
 			msgList := this.parseMessage()
 			for _, msg := range msgList {
-				this.OutMsgChanRef <- msg
+				switch msg.Cmd {
+				case netType.CmdHeartbeat:
+					this.OnRecvHeartBeat()
+				case netType.CmdMsg:
+					this.OutMsgChanRef <- msg
+				default:
+					logLib.Sugar().Errorf("session:%d recv unknown cmd:%d", this.ID, msg.Cmd) // todo consider use zap
+				}
 			}
 		}
 	}
+
+	logLib.Zap().Info("session recv thread exit", zap.Uint32("sessionID", this.ID))
 }
 
 // parse message packet
-func (this *TcpSession) parseMessage() []*netType.ServerMessage {
-	msgList := make([]*netType.ServerMessage, 0, 4)
+func (this *TcpSession) parseMessage() []*netType.ClientServerMsg {
+	msgList := make([]*netType.ClientServerMsg, 0, 4)
 	maxTryCount := 4
 
 	for i := 0; i < maxTryCount; i++ {
@@ -127,13 +142,14 @@ func (this *TcpSession) parseMessage() []*netType.ServerMessage {
 			break
 		}
 
-		msgLen := netType.BytesToUint32(this.recvDataBuf[:netType.MsgHeaderLen])
+		msgLen := netType.BytesToUint32(this.recvDataBuf[:netType.MsgLengthLen])
 		bufLen := len(this.recvDataBuf)
 		if msgLen < uint32(bufLen) {
 			return msgList
 		}
+		cmd := netType.BytesToUint8(this.recvDataBuf[netType.MsgLengthLen : netType.MsgLengthLen+netType.MsgCmdLen])
 
-		msg := netType.NewServerMessage(this.ID, this.recvDataBuf[netType.MsgHeaderLen:msgLen])
+		msg := netType.NewClientServerMsg(cmd, this.recvDataBuf[netType.MsgHeaderLen:msgLen])
 		msgList = append(msgList, msg)
 
 		this.recvDataBuf = this.recvDataBuf[msgLen:]
@@ -163,6 +179,7 @@ func (this *TcpSession) sendThread() {
 			}
 			logLib.Sugar().Debugf("session:%d write msg:%v, length:%d", this.ID, msg, count)
 			this.sendBytes += uint64(count)
+			this.lastActiveTimeMs = time.Now().UnixMilli()
 		}
 
 		if willExit {
@@ -173,13 +190,34 @@ func (this *TcpSession) sendThread() {
 	logLib.Zap().Info("session send thread exit", zap.Uint32("sessionID", this.ID))
 }
 
+func (this *TcpSession) SendHeartBeatMsg() {
+	this.sendMsgByCmd(netType.CmdHeartbeat, []byte{})
+}
+
 func (this *TcpSession) SendMsg(data []byte) {
-	msgLen := netType.MsgHeaderLen + uint32(len(data))
-	msg := netType.NewMessageBody(msgLen, data)
+	this.sendMsgByCmd(netType.CmdMsg, data)
+}
+
+func (this *TcpSession) sendMsgByCmd(cmd uint8, data []byte) {
+	msg := netType.NewClientServerMsg(cmd, data)
 
 	this.SendMsgChannel <- msg
 }
 
 func (this *TcpSession) HeartBeat() {
-	this.SendMsg([]byte("heartbeat"))
+	this.SendHeartBeatMsg()
+}
+
+func (this *TcpSession) OnRecvHeartBeat() {
+	this.lastActiveTimeMs = time.Now().UnixMilli()
+	logLib.Sugar().Debugf("session:%d recv heartbeat", this.ID)
+}
+
+func (this *TcpSession) IsActive() bool {
+	nowTime := time.Now()
+	if nowTime.UnixMilli()-this.lastActiveTimeMs > MaxHeartBeatIntervalMs {
+		return false
+	}
+
+	return true
 }

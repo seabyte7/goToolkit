@@ -1,5 +1,7 @@
 package netType
 
 const (
-	MsgHeaderLen = 4
+	MsgLengthLen = 4
+	MsgCmdLen    = 1
+	MsgHeaderLen = MsgLengthLen + MsgCmdLen
 )
