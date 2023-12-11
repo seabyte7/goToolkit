@@ -4,7 +4,6 @@ import (
 	"errors"
 	"go.uber.org/zap"
 	"goToolkit/logLib"
-	"goToolkit/netLib/netType"
 	. "goToolkit/protocol"
 	"net"
 	"sync"
@@ -12,7 +11,8 @@ import (
 )
 
 type TcpServer struct {
-	OutMsgChannel chan *netType.ClientServerMsg // Out message channel needs to be referenced by the outside world
+	ReceiveMsgChan    chan *ClientServerMsg // Out message channel needs to be referenced by the outside world
+	AcceptSessionChan chan *TcpSession      // Accept session channel needs to be referenced by the outside world
 
 	addr           string
 	listener       net.Listener
@@ -20,16 +20,18 @@ type TcpServer struct {
 	sessionMutex   sync.RWMutex
 	disconnectChan chan *TcpSession
 	exitChan       chan bool
+	waitGroup      sync.WaitGroup
 }
 
 func NewTcpServer(addr string) *TcpServer {
 	return &TcpServer{
-		OutMsgChannel:  make(chan *netType.ClientServerMsg, 1024),
-		addr:           addr,
-		listener:       nil,
-		sessionMap:     make(map[uint32]*TcpSession, 512),
-		disconnectChan: make(chan *TcpSession, 512),
-		exitChan:       make(chan bool, 1),
+		ReceiveMsgChan:    make(chan *ClientServerMsg, 1024),
+		AcceptSessionChan: make(chan *TcpSession, 1024),
+		addr:              addr,
+		listener:          nil,
+		sessionMap:        make(map[uint32]*TcpSession, 512),
+		disconnectChan:    make(chan *TcpSession, 512),
+		exitChan:          make(chan bool, 1),
 	}
 }
 
@@ -67,6 +69,8 @@ func (this *TcpServer) Stop() {
 		item.Stop()
 	}
 	this.sessionMap = make(map[uint32]*TcpSession, 8)
+
+	this.waitGroup.Wait()
 
 	logLib.Zap().Info("TcpServer stop success.", zap.String("addr", this.addr))
 }
@@ -107,6 +111,9 @@ func (this *TcpServer) tryGetSession(sessionID uint32) (*TcpSession, bool) {
 }
 
 func (this *TcpServer) acceptThread() {
+	this.waitGroup.Add(1)
+	defer this.waitGroup.Done()
+
 	logLib.Zap().Info("TcpServer acceptThread start.")
 	for {
 		conn, err := this.listener.Accept()
@@ -120,9 +127,12 @@ func (this *TcpServer) acceptThread() {
 			return
 		}
 
-		sessionPtr := newSession(conn, this.OutMsgChannel, this.disconnectChan)
+		sessionPtr := newServerSession(conn, this.ReceiveMsgChan, this.disconnectChan)
 		sessionPtr.Start()
 		this.addSession(sessionPtr)
+
+		this.AcceptSessionChan <- sessionPtr
+
 		logLib.Sugar().Infof("New session:%d connected.", sessionPtr.ID)
 	}
 
@@ -130,6 +140,9 @@ func (this *TcpServer) acceptThread() {
 }
 
 func (this *TcpServer) sessionThread() {
+	this.waitGroup.Add(1)
+	defer this.waitGroup.Done()
+
 	logLib.Zap().Info("TcpServer sessionThread start.")
 	willExit := false
 	for {
@@ -151,6 +164,9 @@ func (this *TcpServer) sessionThread() {
 }
 
 func (this *TcpServer) heartBeatThread() {
+	this.waitGroup.Add(1)
+	defer this.waitGroup.Done()
+
 	logLib.Zap().Info("TcpServer heartBeatThread start.")
 	willExit := false
 	timeTickChan := time.Tick(1 * time.Second)

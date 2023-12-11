@@ -23,9 +23,6 @@ go.work
 #idea workspace
 .idea
 
-#main directory
-main
-
 # log files
 *.log
 *.log_json

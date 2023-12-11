@@ -1,14 +1,13 @@
 package tcpLib
 
 import (
-	"goToolkit/netLib/netType"
 	. "goToolkit/protocol"
+	"google.golang.org/protobuf/proto"
 	"net"
 )
 
 type TcpClient struct {
-	Name          string
-	OutMsgChannel chan *netType.ClientServerMsg
+	Name string
 
 	session *TcpSession
 }
@@ -19,11 +18,9 @@ func DialTcpServer(name, addr string) (*TcpClient, Result) {
 		return nil, err
 	}
 
-	msgChannel := make(chan *netType.ClientServerMsg, 512)
 	clientPtr := &TcpClient{
-		Name:          name,
-		OutMsgChannel: msgChannel,
-		session:       newSession(conn, msgChannel, make(chan *TcpSession, 1)),
+		Name:    name,
+		session: newClientSession(conn, make(chan *TcpSession, 1)),
 	}
 
 	clientPtr.session.Start()
@@ -33,10 +30,24 @@ func DialTcpServer(name, addr string) (*TcpClient, Result) {
 
 func (this *TcpClient) Close() {
 	this.session.Stop()
-	close(this.OutMsgChannel)
 }
 
 // send msg to server
 func (this *TcpClient) SendMsg(data []byte) {
 	this.session.SendMsg(data)
+}
+
+func (this *TcpClient) SendPBMsg(msg proto.Message) Result {
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	this.session.SendMsg(data)
+
+	return Success
+}
+
+func (this *TcpClient) GetReceiveMsgChan() chan *ClientServerMsg {
+	return this.session.ReceiveMsgChan
 }

@@ -17,10 +17,10 @@ const (
 type TcpSession struct {
 	ID uint32
 
-	SendMsgChannel     chan *netType.ClientServerMsg
-	OutMsgChanRef      chan *netType.ClientServerMsg // Referenced external out message channel
-	disconnectChanRef  chan *TcpSession              // Referenced external disconnected channel
-	readWriteCloseChan chan struct{}                 // The internal read/write channel is closed
+	sendMsgChan        chan *ClientServerMsg
+	ReceiveMsgChan     chan *ClientServerMsg // Referenced external out message channel
+	disconnectChanRef  chan *TcpSession      // Referenced external disconnected channel
+	readWriteCloseChan chan struct{}         // The internal read/write channel is closed
 
 	conn           net.Conn
 	receiveDataBuf []byte // recv data buffer
@@ -35,11 +35,27 @@ type TcpSession struct {
 	waitGroup sync.WaitGroup
 }
 
-func newSession(conn net.Conn, outMsgChan chan *netType.ClientServerMsg, disconnectChan chan *TcpSession) *TcpSession {
+func newServerSession(conn net.Conn, receiveMsgChan chan *ClientServerMsg, disconnectChan chan *TcpSession) *TcpSession {
 	return &TcpSession{
 		ID:                 acquireID(),
-		SendMsgChannel:     make(chan *netType.ClientServerMsg, 512),
-		OutMsgChanRef:      outMsgChan,
+		sendMsgChan:        make(chan *ClientServerMsg, 512),
+		ReceiveMsgChan:     receiveMsgChan,
+		disconnectChanRef:  disconnectChan,
+		readWriteCloseChan: make(chan struct{}, 2),
+		conn:               conn,
+		receiveDataBuf:     make([]byte, 0),
+		receiveBytes:       0,
+		sendBytes:          0,
+		lastActiveTimeMs:   time.Now().UnixMilli(),
+		exitChan:           make(chan struct{}, 1),
+	}
+}
+
+func newClientSession(conn net.Conn, disconnectChan chan *TcpSession) *TcpSession {
+	return &TcpSession{
+		ID:                 acquireID(),
+		sendMsgChan:        make(chan *ClientServerMsg, 512),
+		ReceiveMsgChan:     make(chan *ClientServerMsg, 512),
 		disconnectChanRef:  disconnectChan,
 		readWriteCloseChan: make(chan struct{}, 2),
 		conn:               conn,
@@ -131,7 +147,7 @@ func (this *TcpSession) receiveThread() {
 				case netType.CmdHeartbeat:
 					this.OnReceiveHeartBeat()
 				case netType.CmdMsg:
-					this.OutMsgChanRef <- msg
+					this.ReceiveMsgChan <- NewClientServerMsg(this, msg)
 				default:
 					logLib.Zap().Error("session receive unknown cmd:%d", zap.Uint32("session", this.ID), zap.Uint8("cmd", msg.Cmd))
 				}
@@ -143,8 +159,8 @@ func (this *TcpSession) receiveThread() {
 }
 
 // parse message packet
-func (this *TcpSession) parseMessage() []*netType.ClientServerMsg {
-	msgList := make([]*netType.ClientServerMsg, 0, 4)
+func (this *TcpSession) parseMessage() []*netType.NetMsg {
+	msgList := make([]*netType.NetMsg, 0, 4)
 	maxTryCount := 4
 
 	for i := 0; i < maxTryCount; i++ {
@@ -159,7 +175,7 @@ func (this *TcpSession) parseMessage() []*netType.ClientServerMsg {
 		}
 		cmd := netType.BytesToUint8(this.receiveDataBuf[netType.MsgLengthLen : netType.MsgLengthLen+netType.MsgCmdLen])
 
-		msg := netType.NewClientServerMsg(cmd, this.receiveDataBuf[netType.MsgHeaderLen:msgLen])
+		msg := netType.NewNetMsg(cmd, this.receiveDataBuf[netType.MsgHeaderLen:msgLen])
 		msgList = append(msgList, msg)
 
 		this.receiveDataBuf = this.receiveDataBuf[msgLen:]
@@ -184,7 +200,7 @@ func (this *TcpSession) sendThread() {
 		case <-this.exitChan:
 			willExit = true
 			break
-		case msg := <-this.SendMsgChannel:
+		case msg := <-this.sendMsgChan:
 			count, err := this.conn.Write(msg.ToBytes())
 			if err != nil {
 				logLib.Sugar().Errorf("session:%d write error:%v", this.ID, err)
@@ -212,9 +228,8 @@ func (this *TcpSession) SendMsg(data []byte) {
 }
 
 func (this *TcpSession) sendMsgByCmd(cmd uint8, data []byte) {
-	msg := netType.NewClientServerMsg(cmd, data)
-
-	this.SendMsgChannel <- msg
+	clientServerMsg := NewClientServerMsg(this, netType.NewNetMsg(cmd, data))
+	this.sendMsgChan <- clientServerMsg
 }
 
 func (this *TcpSession) HeartBeat() {
