@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
+	"goToolkit/logLib"
 	"goToolkit/netLib/httpLib"
 	"net/http"
 )
@@ -12,6 +14,18 @@ import (
 /*
 FeiShu document: https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
 */
+
+var (
+	defaultFeiShuWebHookUrl = "" // "https://open.feishu.cn/open-apis/bot/v2/hook/xxxx"
+)
+
+func SetDefaultFeiShuWebHookUrl(url string) {
+	defaultFeiShuWebHookUrl = url
+}
+
+func IsvalidFeiShuWebHookUrl(url string) bool {
+	return len(url) > 0
+}
 
 type FeiShuTextMessage struct {
 	MessageType string                   `json:"msg_type"`
@@ -27,7 +41,22 @@ type FeiShuResponse struct {
 	Message string `json:"msg"`
 }
 
+// push text message to feiShu default webHookUrl
+func PushTextMessageToDefault(message string) error {
+	return PushTextMessage(defaultFeiShuWebHookUrl, message)
+}
+
 func PushTextMessage(webHookUrl, message string) error {
+	if len(webHookUrl) == 0 {
+		webHookUrl = defaultFeiShuWebHookUrl
+	}
+	if IsvalidFeiShuWebHookUrl(webHookUrl) {
+		logLib.Zap().Error("PushTextMessage invalid webHookUrl",
+			zap.String("webHookUrl", webHookUrl),
+			zap.String("message", message))
+		return errors.New("invalid webHookUrl")
+	}
+
 	msg := FeiShuTextMessage{
 		MessageType: "text",
 		Content: FeiShuTextMessageContent{
