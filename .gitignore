@@ -22,3 +22,7 @@ go.work
 
 #idea workspace
 .idea
+
+# log files
+*.log
+*.log_json
