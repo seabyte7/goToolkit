@@ -3,8 +3,6 @@ package natsLib
 import (
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
-	"goToolkit/encodingLib"
-	"goToolkit/logLib"
 )
 
 type NatsClient struct {

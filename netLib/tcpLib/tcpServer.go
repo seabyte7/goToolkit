@@ -3,8 +3,6 @@ package tcpLib
 import (
 	"errors"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
-	. "goToolkit/protocol"
 	"net"
 	"sync"
 	"time"

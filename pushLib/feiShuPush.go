@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/seabyte7/goToolkitnetLib/httpLib"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
-	"goToolkit/netLib/httpLib"
 	"net/http"
 )
 

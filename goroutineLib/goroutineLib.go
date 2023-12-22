@@ -3,8 +3,6 @@ package goroutineLib
 import (
 	"fmt"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
-	"goToolkit/pushLib"
 )
 
 func RunGoroutine(goroutineName string, goroutineFunc func()) {
