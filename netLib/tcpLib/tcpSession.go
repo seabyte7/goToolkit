@@ -1,7 +1,8 @@
 package tcpLib
 
 import (
-	"github.com/seabyte7/goToolkitnetLib/netType"
+	"github.com/seabyte7/goToolkit/logLib"
+	"github.com/seabyte7/goToolkit/netLib/netType"
 	"go.uber.org/zap"
 	"io"
 	"net"

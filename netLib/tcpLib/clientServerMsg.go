@@ -1,6 +1,6 @@
 package tcpLib
 
-import "github.com/seabyte7/goToolkitnetLib/netType"
+import "github.com/seabyte7/goToolkit/netLib/netType"
 
 type ClientServerMsg struct {
 	Session *TcpSession

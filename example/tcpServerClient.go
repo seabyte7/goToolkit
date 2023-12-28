@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/seabyte7/goToolkitnetLib/tcpLib"
+	"github.com/seabyte7/goToolkit/netLib/tcpLib"
+	. "github.com/seabyte7/goToolkit/protocol"
 	"math/rand"
 	"time"
 )

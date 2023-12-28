@@ -1,6 +1,7 @@
 package tcpLib
 
 import (
+	. "github.com/seabyte7/goToolkit/protocol"
 	"google.golang.org/protobuf/proto"
 	"net"
 )
