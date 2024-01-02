@@ -2,9 +2,9 @@ package goroutineLib
 
 import (
 	"fmt"
+	"github.com/seabyte7/goToolkit/logLib"
+	"github.com/seabyte7/goToolkit/pushLib"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
-	"goToolkit/pushLib"
 )
 
 func RunGoroutine(goroutineName string, goroutineFunc func()) {

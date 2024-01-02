@@ -2,9 +2,9 @@ package natsLib
 
 import (
 	"github.com/nats-io/nats.go"
+	"github.com/seabyte7/goToolkit/encodingLib"
+	"github.com/seabyte7/goToolkit/logLib"
 	"go.uber.org/zap/zapcore"
-	"goToolkit/encodingLib"
-	"goToolkit/logLib"
 )
 
 type NatsClient struct {

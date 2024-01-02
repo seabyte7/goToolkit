@@ -3,8 +3,8 @@ package securityLib
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/seabyte7/goToolkit/logLib"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
 	"io"
 	"os"
 	"strings"

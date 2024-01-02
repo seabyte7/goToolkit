@@ -2,7 +2,6 @@ package natsLib
 
 import (
 	"go.uber.org/zap"
-	"goToolkit/logLib"
 	"testing"
 	"time"
 )

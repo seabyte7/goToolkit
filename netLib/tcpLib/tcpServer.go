@@ -2,9 +2,9 @@ package tcpLib
 
 import (
 	"errors"
+	"github.com/seabyte7/goToolkit/logLib"
+	. "github.com/seabyte7/goToolkit/protocol"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
-	. "goToolkit/protocol"
 	"net"
 	"sync"
 	"time"

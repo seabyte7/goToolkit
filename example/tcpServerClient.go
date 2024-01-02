@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"goToolkit/netLib/tcpLib"
+	"github.com/seabyte7/goToolkit/netLib/tcpLib"
+	. "github.com/seabyte7/goToolkit/protocol"
 	"math/rand"
 	"time"
-
-	. "goToolkit/protocol"
 )
 
 var (

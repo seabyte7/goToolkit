@@ -1,8 +1,8 @@
 package natsLib
 
 import (
+	"github.com/seabyte7/goToolkit/logLib"
 	"go.uber.org/zap/zapcore"
-	"goToolkit/logLib"
 	"testing"
 	"time"
 )

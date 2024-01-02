@@ -3,8 +3,8 @@ package natsLib
 import (
 	"errors"
 	"github.com/nats-io/nats.go"
+	"github.com/seabyte7/goToolkit/logLib"
 	"go.uber.org/zap"
-	"goToolkit/logLib"
 	"math/rand"
 	"time"
 )

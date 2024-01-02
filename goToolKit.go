@@ -1,8 +1,8 @@
 package goToolkit
 
 import (
+	"github.com/seabyte7/goToolkit/logLib"
 	"go.uber.org/zap/zapcore"
-	"goToolkit/logLib"
 )
 
 // Start goToolKit库的初始化
