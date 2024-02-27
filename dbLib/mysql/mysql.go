@@ -12,9 +12,9 @@ type MySQLClient struct {
 }
 
 func Dial(uri string) (*MySQLClient, Result) {
-	dialectorPtr := mysql.Open(uri)
+	dialPtr := mysql.Open(uri)
 	dbConfigPtr := &gorm.Config{}
-	dbPtr, err := gorm.Open(dialectorPtr, dbConfigPtr)
+	dbPtr, err := gorm.Open(dialPtr, dbConfigPtr)
 	if err != nil {
 		logLib.Sugar().Errorf("NewMySQLClient failed, uri: %s, error: %v", uri, err.Error())
 		return nil, err
