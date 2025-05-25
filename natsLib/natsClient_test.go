@@ -1,9 +1,11 @@
 package natsLib
 
 import (
-	"go.uber.org/zap"
 	"testing"
 	"time"
+
+	"github.com/seabyte7/goToolkit/logLib"
+	"go.uber.org/zap"
 )
 
 func TestNewClient(t *testing.T) {

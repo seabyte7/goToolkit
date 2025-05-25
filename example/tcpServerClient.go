@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/seabyte7/goToolkit/netLib/tcpLib"
-	. "github.com/seabyte7/goToolkit/protocol"
 	"math/rand"
 	"time"
+
+	"github.com/seabyte7/goToolkit/netLib/tcpLib"
+	. "github.com/seabyte7/goToolkit/protocol"
 )
 
 var (
@@ -50,7 +51,7 @@ func StopTcpServer() {
 
 // go test -v -run TestDialogTcpServer
 // client
-func DialogTcpServer(addr string) (*tcpLib.TcpClient, Result) {
+func DialogTcpServer(addr string) (*tcpLib.TcpClient, ResultStatus) {
 	tcpClientPtr, err := tcpLib.DialTcpServer("test", addr)
 	if err != nil {
 		return nil, err

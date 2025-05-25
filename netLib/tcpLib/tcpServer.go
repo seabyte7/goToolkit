@@ -2,12 +2,13 @@ package tcpLib
 
 import (
 	"errors"
-	"github.com/seabyte7/goToolkit/logLib"
-	. "github.com/seabyte7/goToolkit/protocol"
-	"go.uber.org/zap"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/seabyte7/goToolkit/logLib"
+	. "github.com/seabyte7/goToolkit/protocol"
+	"go.uber.org/zap"
 )
 
 type TcpServer struct {
@@ -35,7 +36,7 @@ func NewTcpServer(addr string) *TcpServer {
 	}
 }
 
-func (this *TcpServer) Start() Result {
+func (this *TcpServer) Start() ResultStatus {
 	listener, err := net.Listen("tcp", this.addr)
 	if err != nil {
 		logLib.Zap().Error(

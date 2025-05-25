@@ -1,9 +1,10 @@
 package tcpLib
 
 import (
+	"net"
+
 	. "github.com/seabyte7/goToolkit/protocol"
 	"google.golang.org/protobuf/proto"
-	"net"
 )
 
 type TcpClient struct {
@@ -12,7 +13,7 @@ type TcpClient struct {
 	session *TcpSession
 }
 
-func DialTcpServer(name, addr string) (*TcpClient, Result) {
+func DialTcpServer(name, addr string) (*TcpClient, ResultStatus) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func (this *TcpClient) SendMsg(data []byte) {
 	this.session.SendMsg(data)
 }
 
-func (this *TcpClient) SendPBMsg(msg proto.Message) Result {
+func (this *TcpClient) SendPBMsg(msg proto.Message) ResultStatus {
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		return err

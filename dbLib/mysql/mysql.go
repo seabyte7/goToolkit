@@ -11,7 +11,7 @@ type MySQLClient struct {
 	*gorm.DB
 }
 
-func Dial(uri string) (*MySQLClient, Result) {
+func Dial(uri string) (*MySQLClient, ResultStatus) {
 	dialPtr := mysql.Open(uri)
 	dbConfigPtr := &gorm.Config{}
 	dbPtr, err := gorm.Open(dialPtr, dbConfigPtr)
